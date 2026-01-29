@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Arena Race</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .status-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #00ff88;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1s infinite;
+        }
+
+        .live-indicator.offline {
+            background: #ff4757;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .race-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bot-lane {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .bot-info {
+            width: 160px;
+            flex-shrink: 0;
+            position: relative;
+            cursor: help;
+        }
+
+        .bot-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .bot-type {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bot-info .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            left: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: rgba(0, 0, 0, 0.95);
+            color: #fff;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            white-space: pre-line;
+            line-height: 1.6;
+            z-index: 100;
+            min-width: 220px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+        .bot-info:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .track {
+            flex: 1;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 25px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+
+        .track-markers {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+        }
+
+        .marker {
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .bot-car {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: left 0.8s ease-out;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .bot-stats {
+            width: 200px;
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .pnl {
+            font-size: 0.9rem;
+        }
+
+        .pnl.positive { color: #00ff88; }
+        .pnl.negative { color: #ff4757; }
+        .pnl.neutral { color: #888; }
+
+        .win-rate {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: transparent;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 5px;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: repeating-linear-gradient(0deg, #fff, #fff 5px, #000 5px, #000 10px);
+        }
+
+        /* Bot colors */
+        .bot-lane[data-bot="Full-AI"] .bot-car { background: linear-gradient(135deg, #ff6b6b, #ee5a5a); }
+        .bot-lane[data-bot="Full-AI"] .bot-name { color: #ff6b6b; }
+
+        .bot-lane[data-bot="AI-Limits"] .bot-car { background: linear-gradient(135deg, #4ecdc4, #44a08d); }
+        .bot-lane[data-bot="AI-Limits"] .bot-name { color: #4ecdc4; }
+
+        .bot-lane[data-bot="AI-Rules"] .bot-car { background: linear-gradient(135deg, #a55eea, #8854d0); }
+        .bot-lane[data-bot="AI-Rules"] .bot-name { color: #a55eea; }
+
+        .bot-lane[data-bot="Rules-Only"] .bot-car { background: linear-gradient(135deg, #ffd93d, #f9ca24); }
+        .bot-lane[data-bot="Rules-Only"] .bot-name { color: #ffd93d; }
+
+        .bot-lane[data-bot="Conservative"] .bot-car { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+        .bot-lane[data-bot="Conservative"] .bot-name { color: #74b9ff; }
+
+        .leaderboard {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #00d4ff;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        .leaderboard-table th {
+            color: #888;
+            font-weight: normal;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .leaderboard-table tr {
+            transition: background 0.3s ease;
+        }
+
+        .leaderboard-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .leaderboard-table td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .rank-col {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .rank-1 { color: #ffd700; }
+        .rank-2 { color: #c0c0c0; }
+        .rank-3 { color: #cd7f32; }
+
+        .action-log {
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .action-log h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .log-entry .bot {
+            font-weight: bold;
+        }
+
+        .action-buy { color: #00ff88; }
+        .action-sell { color: #ff4757; }
+        .action-hold { color: #888; }
+
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+        }
+
+        .no-data h2 {
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .no-data code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bot Arena Race</h1>
+        <p class="subtitle">Paper Trading Competition - Who will profit the most?</p>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">Status</div>
+                <div class="status-value">
+                    <span class="live-indicator" id="liveIndicator"></span>
+                    <span id="statusText">Loading...</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Cycle</div>
+                <div class="status-value" id="cycleNum">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Total Cycles</div>
+                <div class="status-value" id="totalCycles">-</div>
+            </div>
+        </div>
+
+
+        <div id="raceContent">
+            <div class="no-data" id="noData">
+                <h2>No Race Data Found</h2>
+                <p>Run the bot arena to generate race data:</p>
+                <code>python3 bot_arena.py</code>
+                <p style="margin-top: 20px; font-size: 0.9rem;">The race will auto-update when data is available.</p>
+            </div>
+
+            <div class="race-track" id="raceTrack" style="display: none;">
+                <!-- Bot lanes will be dynamically generated -->
+            </div>
+
+            <div class="leaderboard" id="leaderboard" style="display: none;">
+                <h2>Leaderboard</h2>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Bot</th>
+                            <th>Value</th>
+                            <th>PnL</th>
+                            <th>Win Rate</th>
+                            <th>Trades</th>
+                            <th>Max DD</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="action-log" id="actionLog" style="display: none;">
+                <h3>Activity Log</h3>
+                <div id="logContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let raceData = null;
+        let lastDataHash = null;
+
+        const controlLevelLabels = {
+            "full_ai": "100% AI Control",
+            "ai_limits": "AI + Risk Limits",
+            "ai_suggest": "AI Suggests, Rules Approve",
+            "rules_only": "No AI, Pure Rules",
+            "conservative": "High Confidence Only"
+        };
+
+        const botTooltips = {
+            "Full-AI": "100% AI control, no restrictions\n• Min confidence: 30%\n• Max position: $10\n• Max 3 positions",
+            "AI-Limits": "AI trades with risk limits enforced\n• Max position: $8\n• Stop loss within 5%\n• Risk multiplier: 0.8x",
+            "AI-Rules": "AI suggests, rules filter\n• Blocks >30% price swings\n• Min confidence: 30%\n• Max position: $10",
+            "Rules-Only": "Pure rule-based, no AI\n• Buy: 0.5-10% 24h momentum\n• Target: +3%, Stop: -2%\n• Top 5 markets only",
+            "Conservative": "AI with strict filters\n• Min confidence: 60%\n• Requires 1.5:1 reward/risk\n• Max position: $5\n• Max 1 position"
+        };
+
+        // Fetch race data from JSON file
+        async function fetchRaceData() {
+            try {
+                const response = await fetch('race_data.json?' + Date.now());
+                if (!response.ok) throw new Error('No data');
+                const data = await response.json();
+
+                const dataHash = JSON.stringify(data.history?.length || 0);
+                const isNewData = dataHash !== lastDataHash;
+                lastDataHash = dataHash;
+
+                if (data.history && data.history.length > 0) {
+                    raceData = data;
+                    document.getElementById('noData').style.display = 'none';
+                    document.getElementById('raceTrack').style.display = 'block';
+                    document.getElementById('leaderboard').style.display = 'block';
+                    document.getElementById('actionLog').style.display = 'block';
+                    document.getElementById('totalCycles').textContent = data.total_cycles;
+                    document.getElementById('statusText').textContent = 'Connected';
+                    document.getElementById('liveIndicator').classList.remove('offline');
+
+                    // Build race track if not exists
+                    if (document.querySelectorAll('.bot-lane').length === 0) {
+                        buildRaceTrack(data.bots);
+                    }
+
+                    // Always show latest cycle
+                    if (isNewData) {
+                        updateDisplay();
+                    }
+
+                    return true;
+                }
+            } catch (e) {
+                document.getElementById('statusText').textContent = 'No Data';
+                document.getElementById('liveIndicator').classList.add('offline');
+            }
+            return false;
+        }
+
+        function buildRaceTrack(bots) {
+            const track = document.getElementById('raceTrack');
+            track.innerHTML = '';
+
+            bots.forEach(bot => {
+                const lane = document.createElement('div');
+                lane.className = 'bot-lane';
+                lane.dataset.bot = bot.name;
+
+                lane.innerHTML = `
+                    <div class="bot-info">
+                        <div class="bot-name">${bot.name}</div>
+                        <div class="bot-type">${controlLevelLabels[bot.control_level] || bot.control_level}</div>
+                        <div class="tooltip">${botTooltips[bot.name] || ''}</div>
+                    </div>
+                    <div class="track">
+                        <div class="track-markers">
+                            <div class="marker"></div>
+                            <div class="marker"></div>
+                            <div class="marker"></div>
+                            <div class="marker"></div>
+                            <div class="marker"></div>
+                        </div>
+                        <div class="bot-car">
+                            <span class="rank-badge">-</span>
+                        </div>
+                        <div class="finish-line"></div>
+                    </div>
+                    <div class="bot-stats">
+                        <div class="value">$<span class="bot-value">100.00</span></div>
+                        <div class="pnl neutral"><span class="bot-pnl">+0.00</span></div>
+                        <div class="win-rate">Win: <span class="bot-winrate">0%</span> | Trades: <span class="bot-trades">0</span></div>
+                    </div>
+                `;
+
+                track.appendChild(lane);
+            });
+        }
+
+        function updateDisplay() {
+            if (!raceData || !raceData.history || raceData.history.length === 0) return;
+
+            // Always show latest cycle
+            const snapshot = raceData.history[raceData.history.length - 1];
+            if (!snapshot) return;
+
+            document.getElementById('cycleNum').textContent = snapshot.cycle;
+
+            // Find min/max values for track positioning
+            const values = Object.values(snapshot.bots).map(b => b.value);
+            const minValue = Math.min(...values, 90);
+            const maxValue = Math.max(...values, 110);
+
+            // Update each bot lane
+            Object.entries(snapshot.bots).forEach(([botName, botData]) => {
+                const lane = document.querySelector(`.bot-lane[data-bot="${botName}"]`);
+                if (!lane) return;
+
+                const car = lane.querySelector('.bot-car');
+                const valueEl = lane.querySelector('.bot-value');
+                const pnlEl = lane.querySelector('.bot-pnl');
+                const pnlContainer = lane.querySelector('.pnl');
+                const winRateEl = lane.querySelector('.bot-winrate');
+                const tradesEl = lane.querySelector('.bot-trades');
+                const rankBadge = lane.querySelector('.rank-badge');
+
+                // Calculate position (0% to 85% of track width)
+                const position = ((botData.value - minValue) / (maxValue - minValue)) * 85;
+                car.style.left = `${Math.max(0, Math.min(85, position))}%`;
+
+                // Update stats
+                valueEl.textContent = botData.value.toFixed(2);
+                pnlEl.textContent = (botData.pnl >= 0 ? '+' : '') + botData.pnl.toFixed(2);
+                winRateEl.textContent = botData.win_rate + '%';
+                tradesEl.textContent = botData.total_trades;
+
+                // Update PnL color
+                pnlContainer.classList.remove('positive', 'negative', 'neutral');
+                if (botData.pnl > 0) pnlContainer.classList.add('positive');
+                else if (botData.pnl < 0) pnlContainer.classList.add('negative');
+                else pnlContainer.classList.add('neutral');
+
+                // Update rank badge with medal icons
+                const rankIcons = ['', '🥇', '🥈', '🥉', '4', '5'];
+                rankBadge.textContent = rankIcons[botData.rank] || botData.rank;
+                rankBadge.className = 'rank-badge';
+            });
+
+            // Update leaderboard
+            updateLeaderboard(snapshot.bots);
+
+            // Update action log
+            addToLog(snapshot);
+        }
+
+        function updateLeaderboard(bots) {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
+
+            const sorted = Object.entries(bots).sort((a, b) => a[1].rank - b[1].rank);
+
+            sorted.forEach(([name, bot]) => {
+                const row = document.createElement('tr');
+                const pnlClass = bot.pnl > 0 ? 'positive' : (bot.pnl < 0 ? 'negative' : 'neutral');
+                const rankIcons = ['', '🥇', '🥈', '🥉'];
+                const rankDisplay = rankIcons[bot.rank] || bot.rank;
+
+                row.innerHTML = `
+                    <td class="rank-col">${rankDisplay}</td>
+                    <td>${name}</td>
+                    <td>$${bot.value.toFixed(2)}</td>
+                    <td class="pnl ${pnlClass}">${bot.pnl >= 0 ? '+' : ''}${bot.pnl.toFixed(2)}</td>
+                    <td>${bot.win_rate}%</td>
+                    <td>${bot.total_trades}</td>
+                    <td>${bot.max_drawdown}%</td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function addToLog(snapshot) {
+            const log = document.getElementById('logContent');
+
+            // Only add new entries, don't duplicate
+            const existingEntries = log.querySelectorAll('.log-entry');
+            const lastCycle = existingEntries.length > 0 ?
+                parseInt(existingEntries[0].dataset.cycle || 0) : -1;
+
+            if (snapshot.cycle <= lastCycle) return;
+
+            Object.entries(snapshot.bots).forEach(([botName, botData]) => {
+                if (botData.actions && botData.actions.length > 0) {
+                    botData.actions.forEach(action => {
+                        const entry = document.createElement('div');
+                        entry.className = 'log-entry';
+                        entry.dataset.cycle = snapshot.cycle;
+
+                        const actionClass = action.action.includes('BUY') ? 'action-buy' :
+                                           (action.action.includes('SELL') || action.action.includes('CLOSE')) ? 'action-sell' :
+                                           'action-hold';
+
+                        entry.innerHTML = `
+                            <strong>C${snapshot.cycle}</strong> |
+                            <span class="bot">${botName}</span>:
+                            <span class="${actionClass}">${action.type} ${action.action}</span>
+                            ${action.market || ''}
+                            ${action.confidence ? `<span style="color: #666">(${action.confidence}%)</span>` : ''}
+                        `;
+
+                        log.insertBefore(entry, log.firstChild);
+                    });
+                }
+            });
+
+            // Limit log entries
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Initial load and periodic refresh
+        async function init() {
+            await fetchRaceData();
+            updateDisplay();
+
+            // Poll for updates every 2 seconds
+            setInterval(fetchRaceData, 2000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
