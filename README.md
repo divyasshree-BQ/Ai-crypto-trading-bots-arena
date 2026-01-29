@@ -2,6 +2,11 @@
 
 A paper trading competition where 5 AI bots with different strategies race against each other using real market data. **No real money is used.**
 
+## Bots with Real Execution
+
+- [https://github.com/divyasshree-BQ/AI-crypto-trader-all-in-one](https://github.com/divyasshree-BQ/AI-crypto-trader-all-in-one) -> RPC execution
+- [https://github.com/divyasshree-BQ/AI-crypto-trader-all-in-one-CoW-Intent/tree/main](https://github.com/divyasshree-BQ/AI-crypto-trader-all-in-one-CoW-Intent/tree/main) -> Intents execution
+
 ## Quick Start
 
 ```bash
